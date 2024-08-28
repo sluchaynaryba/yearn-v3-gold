@@ -1,6 +1,6 @@
-## ST-ETH/GOLD [BPT](https://app.balancer.fi/#/ethereum/pool/0xcf8dfdb73e7434b05903b5599fb96174555f43530002000000000000000006c3) Strategy for yearn V3
+## ST-YETH/GOLD [BPT](https://app.balancer.fi/#/ethereum/pool/0xcf8dfdb73e7434b05903b5599fb96174555f43530002000000000000000006c3) Strategy for yearn V3
 
-Strategy autocompounds BPT (`ST-ETH/GOLD`)
+Strategy autocompounds BPT (`ST-YETH/GOLD`)
 
 ### Requirements
 
