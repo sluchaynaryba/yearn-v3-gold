@@ -31,7 +31,10 @@ contract OperationTest is Setup {
         // simulate rewards
         deal(address(BAL), address(strategy), 1000e18);
         deal(address(AURA), address(strategy), 1000e18);
+
+        // oracles timestampts are updated
         _syncOracleTimestamp(1 days);
+        _syncCurveOracleMaLastTime(1 days);
 
         // Report profit
         vm.prank(keeper);

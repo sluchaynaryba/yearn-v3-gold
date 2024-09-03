@@ -21,3 +21,9 @@ Use .env file
 ```
 forge test --fork-url ${ETH_RPC_URL}
 ```
+
+### Known issues for management
+
+1. The amount of BPT out in `joinPool` cannot be calculated precisely to be protected, since underlying assets cannot be price without manipulation or concerns of precision directly onchain. Management will handle on best efforts to avoid MEV via multisig.
+
+2. Curve pool oracle can be considered staled based on `curveOracleTimeWindow` value, which can be updated by management. It is advisable to perform a small swap before rewards are processed in case that the pool has zero activity for over 1-2 days.

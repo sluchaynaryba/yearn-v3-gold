@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 import {BaseStrategy, ERC20} from "@tokenized-strategy/BaseStrategy.sol";
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {IVault} from "@balancer/interfaces/contracts/vault/IVault.sol";
 import {WeightedPoolUserData} from "@balancer/interfaces/contracts/pool-weighted/WeightedPoolUserData.sol";
@@ -45,6 +46,7 @@ contract GoldenBoyzCompounderStrategy is BaseStrategy {
     uint256 public slippAuraToWeth;
     uint256 public slippWethToYeth;
     uint256 public oracleWeightedPoolTimeWindow;
+    uint256 public curveOracleTimeWindow;
 
     constructor(address _asset, address _rewardsContract) BaseStrategy(_asset, "GoldenBoyzCompounderStrategy") {
         asset.approve(_rewardsContract, type(uint256).max);
@@ -55,6 +57,7 @@ contract GoldenBoyzCompounderStrategy is BaseStrategy {
         slippAuraToWeth = 9_800;
         slippWethToYeth = 9_970;
         oracleWeightedPoolTimeWindow = 1 hours;
+        curveOracleTimeWindow = 1 days; // @audit on deployment advisable to be 24 hours
 
         BAL.approve(address(BALANCER_VAULT), type(uint256).max);
         AURA.approve(address(BALANCER_VAULT), type(uint256).max);
@@ -77,6 +80,10 @@ contract GoldenBoyzCompounderStrategy is BaseStrategy {
 
     function setOracleWeightedPoolTimeWindow(uint256 _oracleWeightedPoolTimeWindow) external onlyManagement {
         oracleWeightedPoolTimeWindow = _oracleWeightedPoolTimeWindow;
+    }
+
+    function setCurveOracleTimeWindow(uint256 _curveOracleTimeWindow) external onlyManagement {
+        curveOracleTimeWindow = _curveOracleTimeWindow;
     }
 
     function _deployFunds(uint256 _amount) internal override {
@@ -116,6 +123,13 @@ contract GoldenBoyzCompounderStrategy is BaseStrategy {
 
         // idle + staked
         _totalAssets = asset.balanceOf(address(this)) + rewardsContract.balanceOf(address(this));
+    }
+
+    /// @notice Allows management to manually pull funds from the yield source once a strategy has been shut down
+    /// @param _amount Amount of the asset to withdraw from yield source
+    function _emergencyWithdraw(uint256 _amount) internal override {
+        _amount = Math.min(_amount, rewardsContract.balanceOf(address(this)));
+        _freeFunds(_amount);
     }
 
     /// @notice Scales the amount of BAL to WETH using the oracle
@@ -181,7 +195,10 @@ contract GoldenBoyzCompounderStrategy is BaseStrategy {
 
     /// @notice Scales the amount of WETH to YETH
     /// @param _wethAmount Amount of WETH to scale
-    function _wethToYethScale(uint256 _wethAmount) internal view returns (uint256) {
+    function _wethToYethScale(uint256 _wethAmount) internal returns (uint256) {
+        if (block.timestamp - YETH_CURVE_POOL.ma_last_time() > curveOracleTimeWindow) {
+            revert("Curve oracle is outdated");
+        }
         return (_wethAmount * 1e18) / YETH_CURVE_POOL.price_oracle();
     }
 

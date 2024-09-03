@@ -256,4 +256,14 @@ contract Setup is ExtendedTest, IEvents {
             abi.encode(roundId, answer, startedAt, ts + _time, answeredInRound)
         );
     }
+
+    function _syncCurveOracleMaLastTime(uint256 _time) internal {
+        uint256 maLastTimeUpdated = YETH_CURVE_POOL.ma_last_time();
+        maLastTimeUpdated = block.timestamp - maLastTimeUpdated > 1 days ? block.timestamp : maLastTimeUpdated + _time;
+        vm.mockCall(
+            address(YETH_CURVE_POOL),
+            abi.encodeWithSelector(ICurveStablePool.ma_last_time.selector),
+            abi.encode(maLastTimeUpdated)
+        );
+    }
 }
