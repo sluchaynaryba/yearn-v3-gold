@@ -48,6 +48,12 @@ contract GoldenBoyzCompounderStrategy is BaseStrategy {
     uint256 public oracleWeightedPoolTimeWindow;
     uint256 public curveOracleTimeWindow;
 
+    event SlippBalToWethUpdated(uint256 oldValue, uint256 currentValue);
+    event SlippAuraToWethUpdated(uint256 oldValue, uint256 currentValue);
+    event SlippWethToYethUpdated(uint256 oldValue, uint256 currentValue);
+    event OracleWeightedPoolTimeWindowUpdated(uint256 oldValue, uint256 currentValue);
+    event CurveOracleTimeWindowUpdated(uint256 oldValue, uint256 currentValue);
+
     constructor(address _asset, address _rewardsContract) BaseStrategy(_asset, "GoldenBoyzCompounderStrategy") {
         asset.approve(_rewardsContract, type(uint256).max);
         rewardsContract = IBaseRewardPool(_rewardsContract);
@@ -67,23 +73,42 @@ contract GoldenBoyzCompounderStrategy is BaseStrategy {
     }
 
     function setSlippBalToWeth(uint256 _slippBalToWeth) external onlyManagement {
+        if (_slippBalToWeth > 9_900 || _slippBalToWeth < 9_600) revert("Slippage out of bounds");
+        uint256 oldSlippBalToWeth = slippBalToWeth;
         slippBalToWeth = _slippBalToWeth;
+        emit SlippBalToWethUpdated(oldSlippBalToWeth, slippBalToWeth);
     }
 
     function setSlippAuraToWeth(uint256 _slippAuraToWeth) external onlyManagement {
+        if (_slippAuraToWeth > 9_900 || _slippAuraToWeth < 9_600) revert("Slippage out of bounds");
+        uint256 oldSlippAuraToWeth = slippAuraToWeth;
         slippAuraToWeth = _slippAuraToWeth;
+        emit SlippAuraToWethUpdated(oldSlippAuraToWeth, slippAuraToWeth);
     }
 
     function setSlippWethToYeth(uint256 _slippWethToYeth) external onlyManagement {
+        if (_slippWethToYeth > 9_970 || _slippWethToYeth < 9_900) revert("Slippage out of bounds");
+        uint256 oldSlippWethToYeth = slippWethToYeth;
         slippWethToYeth = _slippWethToYeth;
+        emit SlippWethToYethUpdated(oldSlippWethToYeth, slippWethToYeth);
     }
 
     function setOracleWeightedPoolTimeWindow(uint256 _oracleWeightedPoolTimeWindow) external onlyManagement {
+        if (_oracleWeightedPoolTimeWindow < 1 hours || _oracleWeightedPoolTimeWindow > 6 hours) {
+            revert("Time window out of bounds");
+        }
+        uint256 oldOracleWeightedPoolTimeWindow = oracleWeightedPoolTimeWindow;
         oracleWeightedPoolTimeWindow = _oracleWeightedPoolTimeWindow;
+        emit OracleWeightedPoolTimeWindowUpdated(oldOracleWeightedPoolTimeWindow, oracleWeightedPoolTimeWindow);
     }
 
     function setCurveOracleTimeWindow(uint256 _curveOracleTimeWindow) external onlyManagement {
+        if (_curveOracleTimeWindow < 12 hours || _curveOracleTimeWindow > 2 days) {
+            revert("Time window out of bounds");
+        }
+        uint256 oldCurveOracleTimeWindow = curveOracleTimeWindow;
         curveOracleTimeWindow = _curveOracleTimeWindow;
+        emit CurveOracleTimeWindowUpdated(oldCurveOracleTimeWindow, _curveOracleTimeWindow);
     }
 
     function _deployFunds(uint256 _amount) internal override {
@@ -195,7 +220,7 @@ contract GoldenBoyzCompounderStrategy is BaseStrategy {
 
     /// @notice Scales the amount of WETH to YETH
     /// @param _wethAmount Amount of WETH to scale
-    function _wethToYethScale(uint256 _wethAmount) internal returns (uint256) {
+    function _wethToYethScale(uint256 _wethAmount) internal view returns (uint256) {
         if (block.timestamp - YETH_CURVE_POOL.ma_last_time() > curveOracleTimeWindow) {
             revert("Curve oracle is outdated");
         }
